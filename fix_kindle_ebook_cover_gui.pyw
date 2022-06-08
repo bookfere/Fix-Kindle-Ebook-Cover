@@ -33,8 +33,10 @@ class Application(ttk.Frame):
             self.insert_log('A Kindle root directory was detected: %s' % root)
 
 
-    def get_kindle_root(self):
-        self.entryvalue.set(filedialog.askdirectory())
+    def get_kindle_root(self, event=None):
+        value = filedialog.askdirectory()
+        if value != '':
+            self.entryvalue.set(value)
 
 
     def reset_kindle_root(self, event):
@@ -72,10 +74,13 @@ class Application(ttk.Frame):
     def create_widgets(self):
         self.entry = ttk.Entry(self, width=40, textvariable=self.entryvalue)
         self.entry.bind('<FocusOut>', self.reset_kindle_root)
-        self.entry.bind('<FocusOut>', self.reset_kindle_root)
-        self.choose = ttk.Button(self, text='Choose the Kindle root directory', command=self.get_kindle_root)
-        self.fix = ttk.Button(self, text='Fix Cover', command=self.fix_ebook_cover)
-        self.progress = ttk.Progressbar(self, length=580, mode='determinate', maximum=100)
+        self.entry.bind('<Double-1>', self.get_kindle_root)
+        self.choose = ttk.Button(self, text='Choose the Kindle root directory',
+            command=self.get_kindle_root)
+        self.fix = ttk.Button(self, text='Fix Cover',
+            command=self.fix_ebook_cover)
+        self.progress = ttk.Progressbar(self, length=580, mode='determinate',
+            maximum=100)
         self.log = scrolledtext.ScrolledText(self)
 
 
