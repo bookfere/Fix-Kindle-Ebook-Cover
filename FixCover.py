@@ -42,7 +42,7 @@ Detail: https://bookfere.com/post/986.html'
         return path.split('/')[-1];
 
 
-    def get_demaged_thumbnails(self, path):
+    def get_damaged_thumbnails(self, path):
         thumbnails = dict()
         for thumbnail in self.get_filepath_list(path):
             asin = re.match(rf'.*{re.escape(os.sep)}thumbnail_(.+)_EBOK.+', thumbnail)
@@ -68,7 +68,7 @@ Detail: https://bookfere.com/post/986.html'
         return ebook_list
 
 
-    def fix_demaged_thumbnails(self, path, thumbnails):
+    def fix_damaged_thumbnails(self, path, thumbnails):
         ebook_list = self.get_ebook_list(path)
         failure_jobs = {
             'cover_errors': [],
@@ -184,16 +184,16 @@ Detail: https://bookfere.com/post/986.html'
             self.print_log_text('Processing Kindle device: %s' % kindle_root)
             documents_path, thumbnails_path = self.get_kindle_path(kindle_root)
 
-            self.print_log_text('Checking demaged ebook covers:', True)
-            thumbnails = self.get_demaged_thumbnails(thumbnails_path)
+            self.print_log_text('Checking damaged ebook covers:', True)
+            thumbnails = self.get_damaged_thumbnails(thumbnails_path)
 
             if not any(thumbnails):
                 self.print_log_text('- No ebook covers need to fix.')
                 return
 
-            self.print_log_text('Fixing demaged ebook covers:', True)
+            self.print_log_text('Fixing damaged ebook covers:', True)
             self.print_log_text('Working ...')
-            failure_jobs = self.fix_demaged_thumbnails(documents_path, thumbnails)
+            failure_jobs = self.fix_damaged_thumbnails(documents_path, thumbnails)
 
             if any(len(job) > 0 for job in failure_jobs.values()):
                 if len(failure_jobs['cover_errors']) > 0:

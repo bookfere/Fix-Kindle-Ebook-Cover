@@ -1,6 +1,6 @@
 # Fix-Kindle-Ebook-Cover
 
-This is a Python script to fix demaged ebook cover like below in kindle.
+This is a Python script to fix damaged ebook cover like below in kindle.
 
 ![](screenshots/damaged-kindle-ebook-covers.png)
 
@@ -29,9 +29,9 @@ __CLI version:__
 Run the script __fix_kindle_ebook_thumbnails.py__ on terminal with zero, one or more Kindle root directories.
 
 ```console
-$ python3 fix_kindle_ebook_thumbnails.py
-$ python3 fix_kindle_ebook_thumbnails.py /path/to/kindle
-$ python3 fix_kindle_ebook_thumbnails.py /path/to/kindle1 /path/to/kindle2
+$ python3 fix_kindle_ebook_cover.py
+$ python3 fix_kindle_ebook_cover.py /path/to/kindle
+$ python3 fix_kindle_ebook_cover.py /path/to/kindle1 /path/to/kindle2
 ```
 
 ![](screenshots/fix-kindle-ebook-cover-cli.png)
