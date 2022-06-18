@@ -209,7 +209,6 @@ Detail: https://bookfere.com/post/986.html'
             thumbnail_path.unlink(True)
             self.print_log('✓ Delete: %s' % thumbnail_path.name)
 
-
         self.print_log('✓ All orphan ebook covers deleted.')
 
 

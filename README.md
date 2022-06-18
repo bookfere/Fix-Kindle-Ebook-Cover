@@ -1,8 +1,10 @@
+![](screenshots/fixed-kindle-ebook-covers-header-image.png)
+
 # Fix-Kindle-Ebook-Cover
 
 This is a tool to fix damaged ebook cover in kindle as below.
 
-![](screenshots/damaged-kindle-ebook-covers.png)
+![](screenshots/fixed-kindle-ebook-covers.png)
 
 Detail: [https://bookfere.com/post/986.html](https://bookfere.com/post/986.html)
 

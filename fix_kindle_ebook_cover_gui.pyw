@@ -5,6 +5,7 @@
 
 import threading
 from functools import partial
+from math import ceil
 from tkinter import *
 from tkinter import ttk
 from tkinter import filedialog
@@ -71,7 +72,7 @@ class Application(ttk.Frame):
             if factor == 0:
                 self.progress['value'] = 100
                 return
-            self.progress.step(100 / factor)
+            self.progress.step(float(str(100 / factor)[:3]))
         return progress
 
 
