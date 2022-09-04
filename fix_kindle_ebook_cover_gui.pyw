@@ -20,9 +20,11 @@ class Application(ttk.Frame):
         ttk.Frame.__init__(self, master, padding=10)
 
         self.entryvalue = StringVar(self)
+
         self.grid()
         self.create_widgets()
         self.layout_widgets()
+
         self.fixcover = FixCover(
             logger=self.get_logger(),
             progress=self.get_progress()
@@ -79,9 +81,12 @@ class Application(ttk.Frame):
     def handle_ebook_cover(self, action):
         self.log.delete(1.0, END)
         self.progress['value'] = 0
-        def fix_thread():
-            self.fixcover.handle(action, self.entryvalue.get())
-        threading.Thread(target=fix_thread).start()
+        threading.Thread(
+            target=lambda: self.fixcover.handle(
+                action=action,
+                roots=self.entryvalue.get()
+            )
+        ).start()
 
 
     def create_widgets(self):
@@ -116,7 +121,6 @@ def main():
     root.resizable(width=False, height=False)
 
     app = Application(root)
-
     app.master.withdraw()
     app.master.title('Fix Kindle Ebook Cover - %s' % FixCover.version)
     app.master.update()
