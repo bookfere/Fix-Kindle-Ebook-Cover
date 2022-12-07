@@ -1,14 +1,9 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-
 import os
 import re
 import sys
 import time
 import glob
-import imghdr
 import string
-import tempfile
 import sqlite3
 from pathlib import Path
 
@@ -19,9 +14,8 @@ class FixCover:
     name = 'Fix Kindle Ebook Cover'
     version = '1.2'
     feedback = 'https://bookfere.com/post/994.html'
-    description = '%s - v%s\nA tool to fix damaged Kindle ebook covers.\n \
+    description = '%s - v%s\nA tool to fix damaged Kindle ebook covers.\n\
 Feedback: %s' % (name, version, feedback)
-
 
     def __init__(self, logger=None, progress=None, db=None):
         self.logger = logger
@@ -43,23 +37,19 @@ Feedback: %s' % (name, version, feedback)
         self.log('Time: %s' % time.strftime('%Y-%m-%d %H:%M:%S'))
         self.log(self.description, True)
 
-
     def log(self, text, sep=False):
         if self.logger is not None:
             divider = '-------------------------------------------'
-            text =  '%s\n%s\n%s' % (divider, text, divider) \
+            text = '%s\n%s\n%s' % (divider, text, divider) \
                 if sep is True else text
             self.logger(text)
-
 
     def print_progress(self, factor):
         if self.progress is not None:
             self.progress(factor)
 
-
     def get_filepath_list(self, path):
         return glob.glob('%s%s**' % (path, os.sep), recursive=True)
-
 
     def get_ebook_thumbnails_via_path(self, path):
         thumbnails = dict()
@@ -72,7 +62,6 @@ Feedback: %s' % (name, version, feedback)
                 thumbnails[asin.group(1)] = thumbnail
         return thumbnails
 
-
     def get_ebook_thumbnails_via_db(self):
         # self.db_cursor.row_factory = lambda cursor, row: row[0]
         thumbnails = self.db_cursor.execute(' \
@@ -81,13 +70,11 @@ Feedback: %s' % (name, version, feedback)
             AND p_location IS NOT NULL')
         return [row[0] for row in thumbnails.fetchall()]
 
-
     def is_damaged_thumbnail(self, path):
         try:
             return os.path.getsize(path) < 2000
-        except:
+        except Exception:
             return False
-
 
     def get_damaged_thumbnails(self, path):
         thumbnails = self.get_ebook_thumbnails_via_path(path)
@@ -97,13 +84,11 @@ Feedback: %s' % (name, version, feedback)
                 del thumbnails[thumbnail]
         return thumbnails
 
-
     def is_valid_ebook_file(self, filename):
         for ext in ['.mobi', '.azw', '.azw3', 'azw4']:
             if filename.endswith(ext):
                 return True
         return False
-
 
     def get_ebook_list_via_path(self, path):
         ebook_list = []
@@ -114,15 +99,13 @@ Feedback: %s' % (name, version, feedback)
             ebook_list.append(filename)
         return ebook_list
 
-
     def get_ebook_asisn_from_filename(self, filename):
         asin = re.search(
-            '_([A-Z0-9]{10})\.(?:kfx|azw\d{0,1}|prc|[mp]obi)$',
+            r'_([\w-]*)\.(?:kfx|azw\d{0,1}|prc|[mp]obi)$',
             filename
         )
         if asin is not None:
             self.guessed_asins.append(asin.group(1))
-
 
     def get_ebook_list_via_db(self):
         ebook_list = self.db_cursor.execute(" \
@@ -131,31 +114,25 @@ Feedback: %s' % (name, version, feedback)
             AND p_location IS NOT NULL")
         return ebook_list.fetchall()
 
-
     def store_ebook_thumbnail(self, path, data):
         with open(path, 'wb') as file:
             file.write(data)
 
-
     def get_ebook_metadata(self, path):
-        ebook_asin = None
-        ebook_type = None
-        ebook_cover = None
+        asin = cdetype = cover = None
 
         try:
             mobi_file = MOBIFile(path)
-            ebook_asin = mobi_file.get_metadata('ASIN')
-            ebook_type = mobi_file.get_metadata('Document Type')
-            ebook_cover = mobi_file.get_cover_image()
-        except:
+            asin = mobi_file.get_metadata('ASIN')
+            cdetype = mobi_file.get_metadata('Document Type')
+            cover = mobi_file.get_cover_image()
+        except Exception:
             pass
 
-        return (ebook_asin, ebook_type, ebook_cover)
-
+        return (asin, cdetype, cover)
 
     def get_thumbnail_name(self, asin, cdetype):
         return 'thumbnail_%s_%s_portrait.jpg' % (asin, cdetype)
-
 
     def fix_via_db(self, thumbnails_path):
         for row in self.get_ebook_list_via_db():
@@ -166,75 +143,83 @@ Feedback: %s' % (name, version, feedback)
             asin, cde, cover = self.get_ebook_metadata(p_location)
 
             if p_location.endswith('KUAL.kual'):
-                cover = Path(os.path.join(os.path.dirname(__file__),
-                    'kual.jpg')).read_bytes()
+                cover = Path(
+                    os.path.join(os.path.dirname(__file__), 'kual.jpg')
+                ).read_bytes()
             elif not self.is_valid_ebook_file(p_location):
                 continue
             elif cover is None:
-                self.failure_jobs['ebook_errors'].append('%s\n  └─[%s] %s' %
-                    ('No cover was found.', p_cde, Path(p_location).name))
+                self.failure_jobs['ebook_errors'].append(
+                    '%s\n  └─[%s] %s' %
+                    ('No cover was found.', p_cde, Path(p_location).name)
+                )
                 continue
 
             if p_thumbnail is None and p_cde in ('EBOK', 'PDOC'):
                 asin = asin if asin is not None else p_uuid
                 cde = cde if cde is not None else p_cde
-                thumbnail_path = os.path.join(thumbnails_path,
-                    self.get_thumbnail_name(asin, cde))
+                thumbnail_path = os.path.join(
+                    thumbnails_path,
+                    self.get_thumbnail_name(asin, cde)
+                )
                 self.store_ebook_thumbnail(thumbnail_path, cover)
                 self.db_cursor.execute('UPDATE Entries SET p_thumbnail = ? \
                     WHERE p_location = ?', (thumbnail_path, p_location))
-                self.log('✓ Generated: %s\n  └─[%s] %s' %
-                        (Path(thumbnail_path).name, p_cde, Path(p_location).name))
-            elif p_thumbnail is not None and (not os.path.exists(p_thumbnail)
-                or self.is_damaged_thumbnail(p_thumbnail)):
-                    self.store_ebook_thumbnail(p_thumbnail, cover)
-                    self.log('✓ Fixed: %s\n  └─[%s] %s' %
-                        (Path(p_thumbnail).name, p_cde, Path(p_location).name))
-
+                self.log(
+                    '✓ Generated: %s\n  └─[%s] %s' %
+                    (Path(thumbnail_path).name, p_cde, Path(p_location).name)
+                )
+            elif p_thumbnail is not None and (
+                not os.path.exists(p_thumbnail)
+                or self.is_damaged_thumbnail(p_thumbnail)
+            ):
+                self.store_ebook_thumbnail(p_thumbnail, cover)
+                self.log(
+                    '✓ Fixed: %s\n  └─[%s] %s' %
+                    (Path(p_thumbnail).name, p_cde, Path(p_location).name)
+                )
 
     def fix_via_path(self, thumbnails, documents_path, thumbnails_path):
         ebook_list = self.get_ebook_list_via_path(documents_path)
         for ebook in ebook_list:
             self.print_progress(len(ebook_list))
 
-            ebook_asin, ebook_type, ebook_cover = self.get_ebook_metadata(ebook)
+            asin, cdetype, cover = self.get_ebook_metadata(ebook)
             ebook = Path(ebook)
 
-            if ebook_cover is None:
-                self.failure_jobs['ebook_errors'].append('%s\n  └─[%s] %s' %
-                    ('No cover was found.', ebook_type, ebook.name))
+            if cover is None:
+                self.failure_jobs['ebook_errors'].append(
+                    '%s\n  └─[%s] %s' %
+                    ('No cover was found.', cdetype, ebook.name)
+                )
                 continue
 
-            if ebook_type == 'EBOK' and ebook_asin in thumbnails.keys():
-                thumbnail_path = thumbnails[ebook_asin]
+            if cdetype == 'EBOK' and asin in thumbnails.keys():
+                thumbnail_path = thumbnails[asin]
                 thumbnail_name = Path(thumbnail_path).name
-                self.store_ebook_thumbnail(thumbnail_path, ebook_cover)
-                self.log('✓ Fixed: %s\n  └─[%s] %s' %
-                    (thumbnail_name, ebook_type, ebook.name))
+                self.store_ebook_thumbnail(thumbnail_path, cover)
+                self.log(
+                    '✓ Fixed: %s\n  └─[%s] %s' %
+                    (thumbnail_name, cdetype, ebook.name)
+                )
                 self.conquest_jobs += 1
-                del thumbnails[ebook_asin]
-            elif ebook_type == 'EBOK' and ebook_asin is not None:
-                thumbnail_name = self.get_thumbnail_name(ebook_asin, ebook_type)
+                del thumbnails[asin]
+            elif cdetype == 'EBOK' and asin is not None:
+                thumbnail_name = self.get_thumbnail_name(asin, cdetype)
                 thumbnail_path = os.path.join(thumbnails_path, thumbnail_name)
                 if not os.path.exists(thumbnail_path):
-                    self.store_ebook_thumbnail(thumbnail_path, ebook_cover)
-                    self.log('✓ Generated: %s\n  └─[%s] %s' %
-                        (thumbnail_name, ebook_type, ebook.name))
+                    self.store_ebook_thumbnail(thumbnail_path, cover)
+                    self.log(
+                        '✓ Generated: %s\n  └─[%s] %s' %
+                        (thumbnail_name, cdetype, ebook.name)
+                    )
                     self.conquest_jobs += 1
-            # [BUG] Do this will make Kindle can not open ebook.
-            # elif ebook_type == 'PDOC' and ebook.suffix == '.azw3':
-            #     target = ebook.with_suffix('.mobi')
-            #     ebook.rename(target)
-            #     self.log(
-            #         '✓ Rename %s -> %s to show cover.\n  └─[%s] %s' %
-            #         (ebook.suffix, target.suffix, ebook_type, target.name)
-            #     )
 
-        self.failure_jobs['cover_errors'] = [Path(thumbnail).name for
-            thumbnail in thumbnails.values()]
+        self.failure_jobs['cover_errors'] = [
+            Path(thumbnail).name for thumbnail in thumbnails.values()
+        ]
 
         self.print_progress(0)
-
 
     def fix_ebook_thumbnails(self, documents_path, thumbnails_path):
         self.log('Checking damaged ebook covers:', True)
@@ -281,7 +266,6 @@ Feedback: %s' % (name, version, feedback)
         else:
             self.log('- No ebook cover need to fix.')
 
-
     def clean_orphan_thumbnails(self, documents_path, thumbnails_path):
         self.log('Analysing orphan ebook covers:', True)
 
@@ -291,18 +275,21 @@ Feedback: %s' % (name, version, feedback)
             thumbnails = set(thumbnails.values()) \
                 - set(self.get_ebook_thumbnails_via_db())
         else:
-            ebook_list = self.get_ebook_list_via_path(documents_path)
-            for ebook in ebook_list:
-                self.print_progress(len(ebook_list))
-                ebook_asin, ebook_type, ebook_cover = self.get_ebook_metadata(ebook)
-                if ebook_type == 'EBOK' and ebook_asin in thumbnails.keys():
-                    del thumbnails[ebook_asin]
-
-            for asin in self.guessed_asins:
-                if asin in thumbnails.keys():
-                    del thumbnails[asin]
-
-            thumbnails = thumbnails.values()
+            self.log(
+                'This feature Removed due to impossible to delete the orphan'
+                'thumbnails perfectly.'
+            )
+            return
+            # ebook_list = self.get_ebook_list_via_path(documents_path)
+            # for ebook in ebook_list:
+            #     self.print_progress(len(ebook_list))
+            #     asin, cdetype, cover = self.get_ebook_metadata(ebook)
+            #     if cdetype == 'EBOK' and asin in thumbnails.keys():
+            #         del thumbnails[asin]
+            # for asin in self.guessed_asins:
+            #     if asin in thumbnails.keys():
+            #         del thumbnails[asin]
+            # thumbnails = thumbnails.values()
 
         self.print_progress(0)
 
@@ -317,20 +304,17 @@ Feedback: %s' % (name, version, feedback)
 
         self.log('✓ All orphan ebook covers deleted.')
 
-
     def get_kindle_path(self, path):
         return (
             os.path.join(path, 'documents'),
             os.path.join(path, 'system', 'thumbnails')
         )
 
-
     def is_kindle_root(self, path):
         for path in self.get_kindle_path(path):
             if os.path.exists(path) is False:
                 return False
         return True
-
 
     def get_kindle_root_automatically(self):
         drives = []
@@ -349,7 +333,6 @@ Feedback: %s' % (name, version, feedback)
 
         return roots
 
-
     # fix|clean
     def handle(self, action='fix', roots=[]):
         if not sys.version_info >= (3, 5):
@@ -360,7 +343,8 @@ Feedback: %s' % (name, version, feedback)
             return
 
         roots = [roots] if type(roots) != list else roots
-        roots = self.get_kindle_root_automatically() if len(roots) < 1 else roots
+        roots = self.get_kindle_root_automatically() \
+            if len(roots) < 1 else roots
 
         if len(roots) < 1:
             self.log('You need choose a Kindle root directory first.')
@@ -388,8 +372,6 @@ Feedback: %s' % (name, version, feedback)
                 return
 
             self.log('All jobs done.', True)
-            self.log('\n')
-
 
     def __del__(self):
         if (self.db_access):

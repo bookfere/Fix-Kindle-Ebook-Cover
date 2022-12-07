@@ -1,33 +1,29 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-
 # Tkinter API Reference: https://tkdocs.com/pyref/index.html
 
+import sys
 import threading
-from functools import partial
-from math import ceil
-from tkinter import *
-from tkinter import ttk
-from tkinter import filedialog
-from tkinter import messagebox
-from tkinter import scrolledtext
+from tkinter import (
+    Tk, StringVar, ttk, filedialog, scrolledtext, DISABLED, NORMAL, END, E, W
+)
 
 from FixCover import FixCover
 
 
 class Application(ttk.Frame):
-    def __init__(self, master=None):
-        ttk.Frame.__init__(self, master, padding=10)
+    def __init__(self):
+        root = Tk()
+        super().__init__(root, padding=10)
 
         self.entryvalue = StringVar(self)
 
         self.grid()
         self.create_widgets()
         self.layout_widgets()
+        self.bind_action()
 
         self.fixcover = FixCover(
-            logger=self.get_logger(),
-            progress=self.get_progress()
+            logger=self.get_logger,
+            progress=self.get_progress,
         )
 
         roots = self.fixcover.get_kindle_root_automatically()
@@ -38,7 +34,6 @@ class Application(ttk.Frame):
         else:
             self.insert_log('No Kindle root directory detected.')
 
-
     def get_kindle_root(self):
         self.entry.unbind('<Double-1>')
         self.entry.bind('<Double-1>', lambda e: self.prevent_dbclick_twice())
@@ -47,83 +42,84 @@ class Application(ttk.Frame):
         if value != '':
             self.entryvalue.set(value)
 
-
     def prevent_dbclick_twice(self):
         self.entry.unbind('<Double-1>')
         self.entry.bind('<Double-1>', lambda e: self.get_kindle_root())
 
-
     def reset_kindle_root(self):
         self.entryvalue.set(self.entry.get())
 
-
-    def get_logger(self):
-        def logger(text):
-            self.insert_log(text)
-            self.log.see(END)
-        return logger
-
+    def get_logger(self, text):
+        self.insert_log(text)
+        self.log.see(END)
 
     def insert_log(self, text):
         self.log.insert(END, '%s\n' % text)
 
+    def get_progress(self, factor):
+        if factor == 0:
+            self.progress['value'] = 100
+            return
+        self.progress.step(float(str(100 / factor)[:3]))
 
-    def get_progress(self):
-        self.progress['value'] = 0
-        def progress(factor):
-            if factor == 0:
-                self.progress['value'] = 100
-                return
-            self.progress.step(float(str(100 / factor)[:3]))
-        return progress
-
-
-    def handle_ebook_cover(self, action):
+    def handle_ebook_cover(self, action='fix'):
         self.log.delete(1.0, END)
         self.progress['value'] = 0
+        self.choose['state'] = DISABLED
+        self.fixcover.handle(
+            action=action,
+            roots=self.entryvalue.get(),
+        )
+        self.choose['state'] = NORMAL
+
+    def fire_thread(self):
         threading.Thread(
-            target=lambda: self.fixcover.handle(
-                action=action,
-                roots=self.entryvalue.get()
-            )
+            target=self.handle_ebook_cover,
+            kwargs={'action': 'fix'},
+            daemon=True,
         ).start()
 
-
     def create_widgets(self):
-        self.entry = ttk.Entry(self, width=40, textvariable=self.entryvalue)
-        self.entry.bind('<FocusOut>', lambda e: self.reset_kindle_root())
-        self.entry.bind('<Double-1>', lambda e: self.get_kindle_root())
-        self.choose = ttk.Button(self, text='Choose',
-            command=self.get_kindle_root)
-
         self.control = ttk.Frame(self)
-        self.fix = ttk.Button(self.control, text='Fix Cover',
-            command=lambda: self.handle_ebook_cover('fix'))
-        self.clean = ttk.Button(self.control, text='Clean Cover',
-            command=lambda: self.handle_ebook_cover('clean'))
-        self.progress = ttk.Progressbar(self, length=580, mode='determinate',
-            maximum=100)
+        self.entry = ttk.Entry(
+            self.control, textvariable=self.entryvalue
+        )
+        self.choose = ttk.Button(
+            self.control, text='Choose', command=self.get_kindle_root
+        )
+        self.recover = ttk.Button(
+            self.control, text='Recover', command=self.fire_thread
+        )
+        self.progress = ttk.Progressbar(
+            self, length=580, mode='determinate', maximum=100
+        )
         self.log = scrolledtext.ScrolledText(self)
 
-
     def layout_widgets(self):
-        self.entry.grid(column=0, row=0, padx=5, sticky=E)
-        self.choose.grid(column=1, row=0, padx=5, sticky=W)
-        self.control.grid(column=0, row=1, columnspan=2)
-        self.fix.grid(column=0, row=1, padx=5, pady=5, sticky=E)
-        self.clean.grid(column=1, row=1, padx=5, pady=5, sticky=W)
-        self.progress.grid(column=0, row=2, columnspan=2)
-        self.log.grid(column=0, row=3, pady=10, columnspan=2)
+        self.control.grid(column=0, row=0, sticky=W+E)
+        self.entry.grid(column=0, row=0, sticky=W+E)
+        self.choose.grid(column=1, row=0, sticky=E)
+        self.recover.grid(column=2, row=0, sticky=E)
+        self.progress.grid(column=0, row=1, pady=10)
+        self.log.grid(column=0, row=2)
+
+        self.control.columnconfigure(0, weight=30)
+        self.control.columnconfigure(1, weight=1)
+        self.control.columnconfigure(2, weight=1)
+
+    def bind_action(self):
+        self.entry.bind('<FocusOut>', lambda e: self.reset_kindle_root())
+        self.entry.bind('<Double-1>', lambda e: self.get_kindle_root())
 
 
 def main():
-    root = Tk()
-    root.resizable(width=False, height=False)
-
-    app = Application(root)
+    app = Application()
     app.master.withdraw()
+    if sys.platform.startswith('win32'):
+        app.master.iconbitmap('assets/icon.ico')
     app.master.title('Fix Kindle Ebook Cover - %s' % FixCover.version)
     app.master.update()
+    app.master.resizable(width=False, height=False)
     width = app.master.winfo_width()
     height = app.master.winfo_height()
     x = round(app.master.winfo_screenwidth() / 2 - width / 2)
