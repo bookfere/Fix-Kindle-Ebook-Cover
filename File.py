@@ -22,7 +22,7 @@ __copyright__ = '2014, Pawel Jastrzebski <pawelj@iosphe.re>'
 import os
 import random
 import string
-from imghdr import what
+from image_detector import detect_image_format
 from io import BytesIO
 from tempfile import gettempdir
 from uuid import uuid4
@@ -81,13 +81,7 @@ class MOBIFile:
             if data == chr(0xe9) + chr(0x8e) + "\r\n":
                 imgnames.append(None)
                 continue
-            imgtype = what(None, data)
-            if imgtype is None and data[0:2] == b'\xFF\xD8':
-                last = len(data)
-                while data[last-1:last] == b'\x00':
-                    last -= 1
-                if data[last-2:last] == b'\xFF\xD9':
-                    imgtype = "jpeg"
+            imgtype = detect_image_format(data)
             if imgtype is None:
                 imgnames.append(None)
             else:
